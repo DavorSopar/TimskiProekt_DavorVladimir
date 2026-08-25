@@ -7,7 +7,7 @@ before ``init_db()`` is called.
 """
 
 from app.database.base import Base
-from app.database.models import Category, Transaction
+from app.database.models import Budget, Category, Transaction
 from app.database.seed import seed_default_categories
 from app.database.session import DATABASE_URL, SessionLocal, engine, get_db
 
@@ -18,6 +18,7 @@ __all__ = [
     "engine",
     "get_db",
     "init_db",
+    "Budget",
     "Category",
     "Transaction",
 ]
