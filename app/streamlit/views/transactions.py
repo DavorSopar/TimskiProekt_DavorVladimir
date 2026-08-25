@@ -127,6 +127,7 @@ def _render_edit_delete_section(transactions: list[dict], category_options: list
         txn_type = st.selectbox(
             "Type", TRANSACTION_TYPES, index=TRANSACTION_TYPES.index(transaction["type"])
         )
+        confirm_delete = st.checkbox("Confirm delete — this cannot be undone")
         col1, col2 = st.columns(2)
         update_clicked = col1.form_submit_button("Update")
         delete_clicked = col2.form_submit_button("Delete")
@@ -148,13 +149,16 @@ def _render_edit_delete_section(transactions: list[dict], category_options: list
             st.rerun()
 
     if delete_clicked:
-        try:
-            api_client.delete_transaction(transaction["id"])
-        except api_client.APIError as exc:
-            st.error(str(exc))
+        if not confirm_delete:
+            st.warning("Check 'Confirm delete' first to delete this transaction.")
         else:
-            st.success("Transaction deleted.")
-            st.rerun()
+            try:
+                api_client.delete_transaction(transaction["id"])
+            except api_client.APIError as exc:
+                st.error(str(exc))
+            else:
+                st.success("Transaction deleted.")
+                st.rerun()
 
 
 def render() -> None:

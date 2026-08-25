@@ -9,6 +9,7 @@ returns; it never validates or parses CSV rows itself.
 import streamlit as st
 
 import api_client
+from csv_import_helpers import classify_import_result
 
 
 def render() -> None:
@@ -33,7 +34,11 @@ def render() -> None:
         st.error(str(exc))
         return
 
-    st.success(f"Imported {result['imported']} row(s). Skipped {result['skipped']} row(s).")
+    level, message = classify_import_result(result["imported"], result["skipped"])
+    if level == "success":
+        st.success(message)
+    else:
+        st.warning(message)
 
     errors = result.get("errors") or []
     if errors:
