@@ -34,3 +34,18 @@ class TransactionRead(BaseModel):
     amount_cents: int
     type: TransactionType
     created_at: datetime
+
+
+class CategoryCreate(BaseModel):
+    """Request body for POST /api/categories (API_CONTRACT.md §3)."""
+
+    name: str
+
+
+class CategoryRead(BaseModel):
+    """Response body for category endpoints (API_CONTRACT.md §3)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
