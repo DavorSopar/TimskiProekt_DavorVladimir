@@ -307,3 +307,112 @@ def test_get_budget_status_returns_parsed_json(monkeypatch):
     _patch_request(monkeypatch, fake_request)
 
     assert api_client.get_budget_status(1) == payload
+
+
+def test_import_csv_posts_multipart_file(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["files"] = kwargs.get("files")
+        return _FakeResponse(200, {"imported": 2, "skipped": 1, "errors": [{"row": 3, "message": "bad date"}]})
+
+    _patch_request(monkeypatch, fake_request)
+
+    result = api_client.import_csv("transactions.csv", b"date,description,category,amount,type\n")
+
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/api/import/csv")
+    assert captured["files"] == {
+        "file": ("transactions.csv", b"date,description,category,amount,type\n", "text/csv")
+    }
+    assert result["imported"] == 2
+    assert result["skipped"] == 1
+    assert result["errors"] == [{"row": 3, "message": "bad date"}]
+
+
+def test_import_csv_raises_api_error_on_failure(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(500, {"detail": "internal error"})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.import_csv("bad.csv", b"garbage")
+    except api_client.APIError as exc:
+        assert "internal error" in str(exc)
+    else:
+        raise AssertionError("expected APIError to be raised")
+
+
+def test_get_analytics_summary_returns_parsed_json(monkeypatch):
+    payload = {"total_income_cents": 250000, "total_expenses_cents": 4250, "net_balance_cents": 245750}
+
+    def fake_request(method, url, timeout, **kwargs):
+        assert url.endswith("/api/analytics/summary")
+        assert kwargs.get("params") == {}
+        return _FakeResponse(200, payload)
+
+    _patch_request(monkeypatch, fake_request)
+
+    assert api_client.get_analytics_summary() == payload
+
+
+def test_get_analytics_summary_sends_date_range(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, {})
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.get_analytics_summary(start_date="2025-01-01", end_date="2025-01-31")
+
+    assert captured["params"] == {"start_date": "2025-01-01", "end_date": "2025-01-31"}
+
+
+def test_get_analytics_by_category_returns_parsed_json(monkeypatch):
+    payload = [{"category": "Food", "total_cents": 4250}]
+
+    def fake_request(method, url, timeout, **kwargs):
+        assert url.endswith("/api/analytics/by-category")
+        return _FakeResponse(200, payload)
+
+    _patch_request(monkeypatch, fake_request)
+
+    assert api_client.get_analytics_by_category() == payload
+
+
+def test_get_monthly_trend_omits_months_param_when_not_given(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["url"] = url
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.get_monthly_trend()
+
+    assert captured["url"].endswith("/api/analytics/monthly-trend")
+    assert captured["params"] == {}
+
+
+def test_get_monthly_trend_sends_months_param(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(
+            200, [{"month": "2025-01", "income_cents": 250000, "expenses_cents": 4250}]
+        )
+
+    _patch_request(monkeypatch, fake_request)
+
+    result = api_client.get_monthly_trend(months=3)
+
+    assert captured["params"] == {"months": 3}
+    assert result[0]["month"] == "2025-01"
