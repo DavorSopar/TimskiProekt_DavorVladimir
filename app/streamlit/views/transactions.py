@@ -1,11 +1,11 @@
-"""Transactions page: create, edit, delete, and list transactions.
+"""Transactions page: create, edit, delete, list, and filter transactions.
 
 Talks to the backend exclusively through api_client, per
 API_CONTRACT.md §2. Validation is backend-owned — this page only
 surfaces the `detail` message the API returns on a bad request; it
-does not re-implement that validation itself.
-
-Category *filtering* the list UI is SCRUM-10's job, not this page's.
+does not re-implement that validation itself. Filtering is likewise
+backend-owned: the widgets below only choose which query params to
+send, via filters.build_transaction_filters (SCRUM-10).
 """
 
 from datetime import date as date_cls
@@ -13,6 +13,7 @@ from datetime import date as date_cls
 import streamlit as st
 
 import api_client
+from filters import ALL_CATEGORIES, TRANSACTION_TYPE_FILTER_OPTIONS, build_transaction_filters
 from formatting import cents_to_dollars, dollars_to_cents, format_cents
 
 TRANSACTION_TYPES = ["expense", "income"]
@@ -62,16 +63,26 @@ def _render_create_form(category_options: list[str]) -> None:
         st.rerun()
 
 
-def _render_transaction_list() -> list[dict]:
+def _render_filters(category_options: list[str]) -> dict:
+    st.subheader("Filters")
+    col1, col2, col3, col4 = st.columns(4)
+    category = col1.selectbox("Category", [ALL_CATEGORIES] + category_options)
+    txn_type = col2.selectbox("Type", TRANSACTION_TYPE_FILTER_OPTIONS)
+    start_date = col3.date_input("Start date", value=None)
+    end_date = col4.date_input("End date", value=None)
+    return build_transaction_filters(category, txn_type, start_date, end_date)
+
+
+def _render_transaction_list(filters: dict) -> list[dict]:
     st.subheader("All transactions")
     try:
-        transactions = api_client.list_transactions()
+        transactions = api_client.list_transactions(**filters)
     except api_client.APIError as exc:
         st.error(f"Could not load transactions: {exc}")
         return []
 
     if not transactions:
-        st.info("No transactions yet.")
+        st.info("No transactions match the current filters." if any(filters.values()) else "No transactions yet.")
         return []
 
     st.dataframe(
@@ -150,5 +161,6 @@ def render() -> None:
     st.title("Transactions")
     category_options = _category_options()
     _render_create_form(category_options)
-    transactions = _render_transaction_list()
+    filters = _render_filters(category_options)
+    transactions = _render_transaction_list(filters)
     _render_edit_delete_section(transactions, category_options)
