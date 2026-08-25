@@ -86,3 +86,18 @@ class BudgetStatus(BaseModel):
     spent_cents: int
     remaining_cents: int
     over_budget: bool
+
+
+class ImportRowError(BaseModel):
+    """One failed row in a CSV import (API_CONTRACT.md §5)."""
+
+    row: int
+    message: str
+
+
+class ImportResult(BaseModel):
+    """Response body for POST /api/import/csv (API_CONTRACT.md §5)."""
+
+    imported: int
+    skipped: int
+    errors: list[ImportRowError]
