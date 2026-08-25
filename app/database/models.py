@@ -37,3 +37,15 @@ class Transaction(Base):
             f"Transaction(id={self.id!r}, date={self.date!r}, type={self.type!r}, "
             f"amount_cents={self.amount_cents!r}, category={self.category!r})"
         )
+
+
+class Category(Base):
+    """A user-manageable transaction category (API_CONTRACT.md §3)."""
+
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid only
+        return f"Category(id={self.id!r}, name={self.name!r})"
