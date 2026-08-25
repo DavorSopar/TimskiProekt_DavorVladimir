@@ -344,3 +344,75 @@ def test_import_csv_raises_api_error_on_failure(monkeypatch):
         assert "internal error" in str(exc)
     else:
         raise AssertionError("expected APIError to be raised")
+
+
+def test_get_analytics_summary_returns_parsed_json(monkeypatch):
+    payload = {"total_income_cents": 250000, "total_expenses_cents": 4250, "net_balance_cents": 245750}
+
+    def fake_request(method, url, timeout, **kwargs):
+        assert url.endswith("/api/analytics/summary")
+        assert kwargs.get("params") == {}
+        return _FakeResponse(200, payload)
+
+    _patch_request(monkeypatch, fake_request)
+
+    assert api_client.get_analytics_summary() == payload
+
+
+def test_get_analytics_summary_sends_date_range(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, {})
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.get_analytics_summary(start_date="2025-01-01", end_date="2025-01-31")
+
+    assert captured["params"] == {"start_date": "2025-01-01", "end_date": "2025-01-31"}
+
+
+def test_get_analytics_by_category_returns_parsed_json(monkeypatch):
+    payload = [{"category": "Food", "total_cents": 4250}]
+
+    def fake_request(method, url, timeout, **kwargs):
+        assert url.endswith("/api/analytics/by-category")
+        return _FakeResponse(200, payload)
+
+    _patch_request(monkeypatch, fake_request)
+
+    assert api_client.get_analytics_by_category() == payload
+
+
+def test_get_monthly_trend_omits_months_param_when_not_given(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["url"] = url
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.get_monthly_trend()
+
+    assert captured["url"].endswith("/api/analytics/monthly-trend")
+    assert captured["params"] == {}
+
+
+def test_get_monthly_trend_sends_months_param(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(
+            200, [{"month": "2025-01", "income_cents": 250000, "expenses_cents": 4250}]
+        )
+
+    _patch_request(monkeypatch, fake_request)
+
+    result = api_client.get_monthly_trend(months=3)
+
+    assert captured["params"] == {"months": 3}
+    assert result[0]["month"] == "2025-01"

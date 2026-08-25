@@ -160,3 +160,23 @@ def import_csv(filename: str, content: bytes) -> dict:
     """
     files = {"file": (filename, content, "text/csv")}
     return _request("POST", "/api/import/csv", files=files).json()
+
+
+def get_analytics_summary(*, start_date: str | None = None, end_date: str | None = None) -> dict:
+    """GET /api/analytics/summary -> {total_income_cents, total_expenses_cents, net_balance_cents}."""
+    params = {key: value for key, value in {"start_date": start_date, "end_date": end_date}.items() if value}
+    return _request("GET", "/api/analytics/summary", params=params).json()
+
+
+def get_analytics_by_category(
+    *, start_date: str | None = None, end_date: str | None = None
+) -> list[dict]:
+    """GET /api/analytics/by-category -> [{category, total_cents}], expenses only, sorted descending."""
+    params = {key: value for key, value in {"start_date": start_date, "end_date": end_date}.items() if value}
+    return _request("GET", "/api/analytics/by-category", params=params).json()
+
+
+def get_monthly_trend(*, months: int | None = None) -> list[dict]:
+    """GET /api/analytics/monthly-trend -> [{month, income_cents, expenses_cents}]."""
+    params = {"months": months} if months else {}
+    return _request("GET", "/api/analytics/monthly-trend", params=params).json()
