@@ -150,3 +150,13 @@ def update_budget(budget_id: int, *, amount_cents: int) -> dict:
 def get_budget_status(budget_id: int) -> dict:
     """GET /api/budgets/{id}/status -> {budget, spent_cents, remaining_cents, over_budget}."""
     return _request("GET", f"/api/budgets/{budget_id}/status").json()
+
+
+def import_csv(filename: str, content: bytes) -> dict:
+    """POST /api/import/csv as multipart/form-data (field name "file").
+
+    Returns {imported, skipped, errors: [{row, message}]} — import is
+    all-or-nothing per row, not for the whole file (API_CONTRACT.md §5).
+    """
+    files = {"file": (filename, content, "text/csv")}
+    return _request("POST", "/api/import/csv", files=files).json()

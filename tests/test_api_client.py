@@ -307,3 +307,40 @@ def test_get_budget_status_returns_parsed_json(monkeypatch):
     _patch_request(monkeypatch, fake_request)
 
     assert api_client.get_budget_status(1) == payload
+
+
+def test_import_csv_posts_multipart_file(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["files"] = kwargs.get("files")
+        return _FakeResponse(200, {"imported": 2, "skipped": 1, "errors": [{"row": 3, "message": "bad date"}]})
+
+    _patch_request(monkeypatch, fake_request)
+
+    result = api_client.import_csv("transactions.csv", b"date,description,category,amount,type\n")
+
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/api/import/csv")
+    assert captured["files"] == {
+        "file": ("transactions.csv", b"date,description,category,amount,type\n", "text/csv")
+    }
+    assert result["imported"] == 2
+    assert result["skipped"] == 1
+    assert result["errors"] == [{"row": 3, "message": "bad date"}]
+
+
+def test_import_csv_raises_api_error_on_failure(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(500, {"detail": "internal error"})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.import_csv("bad.csv", b"garbage")
+    except api_client.APIError as exc:
+        assert "internal error" in str(exc)
+    else:
+        raise AssertionError("expected APIError to be raised")
