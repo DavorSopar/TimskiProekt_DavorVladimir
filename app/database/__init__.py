@@ -7,7 +7,8 @@ before ``init_db()`` is called.
 """
 
 from app.database.base import Base
-from app.database.models import Transaction
+from app.database.models import Budget, Category, Transaction
+from app.database.seed import seed_default_categories
 from app.database.session import DATABASE_URL, SessionLocal, engine, get_db
 
 __all__ = [
@@ -17,10 +18,17 @@ __all__ = [
     "engine",
     "get_db",
     "init_db",
+    "Budget",
+    "Category",
     "Transaction",
 ]
 
 
 def init_db() -> None:
-    """Create all tables registered on ``Base``. Safe to call repeatedly."""
+    """Create all tables and insert default seed data. Safe to call repeatedly."""
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_default_categories(db)
+    finally:
+        db.close()
