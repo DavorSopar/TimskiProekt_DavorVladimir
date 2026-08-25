@@ -1,4 +1,5 @@
 """FastAPI routers and Pydantic schemas.
 
-Placeholder for FIN-01 scaffolding — routers are added in later issues.
+The aggregated router lives in ``app.api.routers``; the FastAPI app itself
+is assembled in ``app.main``.
 """
