@@ -20,5 +20,11 @@ def dollars_to_cents(amount: float) -> int:
 
 
 def format_cents(cents: int) -> str:
-    """Format integer cents as a dollar display string, e.g. 4250 -> '$42.50'."""
-    return f"${cents_to_dollars(cents):,.2f}"
+    """Format integer cents as a dollar display string.
+
+    4250 -> '$42.50'; -5000 -> '-$50.00' (negative remaining/over-budget
+    amounts read as a leading minus sign, not a minus inside the dollar sign).
+    """
+    dollars = cents_to_dollars(abs(cents))
+    sign = "-" if cents < 0 else ""
+    return f"{sign}${dollars:,.2f}"

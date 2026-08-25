@@ -26,3 +26,7 @@ def test_format_cents_adds_thousands_separator():
 
 def test_format_cents_handles_zero():
     assert formatting.format_cents(0) == "$0.00"
+
+
+def test_format_cents_handles_negative_amounts():
+    assert formatting.format_cents(-5000) == "-$50.00"

@@ -209,3 +209,101 @@ def test_delete_transaction_sends_delete(monkeypatch):
 
     assert captured["method"] == "DELETE"
     assert captured["url"].endswith("/api/transactions/7")
+
+
+def test_list_budgets_omits_month_param_when_not_given(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.list_budgets()
+
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/api/budgets")
+    assert captured["params"] == {}
+
+
+def test_list_budgets_sends_month_param(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.list_budgets(month="2025-01")
+
+    assert captured["params"] == {"month": "2025-01"}
+
+
+def test_create_budget_posts_expected_body(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["method"] = method
+        captured["json"] = kwargs.get("json")
+        return _FakeResponse(201, {"id": 1, **kwargs["json"]})
+
+    _patch_request(monkeypatch, fake_request)
+
+    result = api_client.create_budget(category="Food", month="2025-01", amount_cents=20000)
+
+    assert captured["method"] == "POST"
+    assert captured["json"] == {"category": "Food", "month": "2025-01", "amount_cents": 20000}
+    assert result["id"] == 1
+
+
+def test_create_budget_raises_api_error_on_conflict(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(409, {"detail": "budget already exists"})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.create_budget(category="Food", month="2025-01", amount_cents=20000)
+    except api_client.APIError as exc:
+        assert "already exists" in str(exc)
+    else:
+        raise AssertionError("expected APIError to be raised")
+
+
+def test_update_budget_puts_amount_only(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["method"] = method
+        captured["url"] = url
+        captured["json"] = kwargs.get("json")
+        return _FakeResponse(200, {"id": 1, "amount_cents": 30000})
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.update_budget(1, amount_cents=30000)
+
+    assert captured["method"] == "PUT"
+    assert captured["url"].endswith("/api/budgets/1")
+    assert captured["json"] == {"amount_cents": 30000}
+
+
+def test_get_budget_status_returns_parsed_json(monkeypatch):
+    payload = {
+        "budget": {"id": 1, "category": "Food", "month": "2025-01", "amount_cents": 20000},
+        "spent_cents": 5000,
+        "remaining_cents": 15000,
+        "over_budget": False,
+    }
+
+    def fake_request(method, url, timeout, **kwargs):
+        assert url.endswith("/api/budgets/1/status")
+        return _FakeResponse(200, payload)
+
+    _patch_request(monkeypatch, fake_request)
+
+    assert api_client.get_budget_status(1) == payload
