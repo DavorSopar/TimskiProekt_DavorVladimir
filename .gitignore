@@ -21,3 +21,7 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local-only reference docs (not part of the shared repo)
+API_CONTRACT.md
+CLAUDE-PARTICIPANT-1.md
