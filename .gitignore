@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+
+# Local database (never committed — see CLAUDE-PARTICIPANT-1.md, Database Rules)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
