@@ -128,3 +128,25 @@ def update_transaction(
 def delete_transaction(transaction_id: int) -> None:
     """DELETE /api/transactions/{id}."""
     _request("DELETE", f"/api/transactions/{transaction_id}")
+
+
+def list_budgets(*, month: str | None = None) -> list[dict]:
+    """GET /api/budgets, optionally filtered by month (YYYY-MM)."""
+    params = {"month": month} if month else {}
+    return _request("GET", "/api/budgets", params=params).json()
+
+
+def create_budget(*, category: str, month: str, amount_cents: int) -> dict:
+    """POST /api/budgets. Raises APIError (409) if one already exists — use update_budget."""
+    body = {"category": category, "month": month, "amount_cents": amount_cents}
+    return _request("POST", "/api/budgets", json=body).json()
+
+
+def update_budget(budget_id: int, *, amount_cents: int) -> dict:
+    """PUT /api/budgets/{id}."""
+    return _request("PUT", f"/api/budgets/{budget_id}", json={"amount_cents": amount_cents}).json()
+
+
+def get_budget_status(budget_id: int) -> dict:
+    """GET /api/budgets/{id}/status -> {budget, spent_cents, remaining_cents, over_budget}."""
+    return _request("GET", f"/api/budgets/{budget_id}/status").json()
