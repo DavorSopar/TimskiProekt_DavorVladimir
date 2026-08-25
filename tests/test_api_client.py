@@ -111,6 +111,48 @@ def test_error_detail_handles_validation_error_list(monkeypatch):
         raise AssertionError("expected APIError to be raised")
 
 
+def test_error_detail_handles_missing_detail_key(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(500, {"something_else": "oops"})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.get_categories()
+    except api_client.APIError as exc:
+        assert str(exc) == "HTTP 500"
+    else:
+        raise AssertionError("expected APIError to be raised")
+
+
+def test_error_detail_handles_list_of_non_dict_items(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(422, {"detail": ["field is required"]})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.get_categories()
+    except api_client.APIError as exc:
+        assert str(exc) == "field is required"
+    else:
+        raise AssertionError("expected APIError to be raised")
+
+
+def test_error_detail_handles_non_string_non_list_detail(monkeypatch):
+    def fake_request(method, url, timeout, **kwargs):
+        return _FakeResponse(500, {"detail": {"unexpected": "shape"}})
+
+    _patch_request(monkeypatch, fake_request)
+
+    try:
+        api_client.get_categories()
+    except api_client.APIError as exc:
+        assert str(exc) == str({"unexpected": "shape"})
+    else:
+        raise AssertionError("expected APIError to be raised")
+
+
 def test_error_detail_handles_non_json_body(monkeypatch):
     def fake_request(method, url, timeout, **kwargs):
         return _FakeResponse(500, _NO_BODY, text="internal server error")
@@ -141,6 +183,41 @@ def test_list_transactions_sends_only_provided_filters(monkeypatch):
     assert captured["method"] == "GET"
     assert captured["url"].endswith("/api/transactions")
     assert captured["params"] == {"category": "Food"}
+
+
+def test_list_transactions_with_no_filters_sends_empty_params(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.list_transactions()
+
+    assert captured["params"] == {}
+
+
+def test_list_transactions_with_all_filters_combines_them(monkeypatch):
+    captured = {}
+
+    def fake_request(method, url, timeout, **kwargs):
+        captured["params"] = kwargs.get("params")
+        return _FakeResponse(200, [])
+
+    _patch_request(monkeypatch, fake_request)
+
+    api_client.list_transactions(
+        category="Food", type_="expense", start_date="2025-01-01", end_date="2025-01-31"
+    )
+
+    assert captured["params"] == {
+        "category": "Food",
+        "type": "expense",
+        "start_date": "2025-01-01",
+        "end_date": "2025-01-31",
+    }
 
 
 def test_create_transaction_posts_expected_body(monkeypatch):
