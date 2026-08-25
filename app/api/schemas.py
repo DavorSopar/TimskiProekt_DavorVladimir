@@ -101,3 +101,26 @@ class ImportResult(BaseModel):
     imported: int
     skipped: int
     errors: list[ImportRowError]
+
+
+class AnalyticsSummary(BaseModel):
+    """Response body for GET /api/analytics/summary (API_CONTRACT.md §6)."""
+
+    total_income_cents: int
+    total_expenses_cents: int
+    net_balance_cents: int
+
+
+class CategoryTotal(BaseModel):
+    """One entry of GET /api/analytics/by-category (API_CONTRACT.md §6)."""
+
+    category: str
+    total_cents: int
+
+
+class MonthlyTrend(BaseModel):
+    """One entry of GET /api/analytics/monthly-trend (API_CONTRACT.md §6)."""
+
+    month: str
+    income_cents: int
+    expenses_cents: int
